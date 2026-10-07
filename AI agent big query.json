@@ -1,0 +1,193 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "=define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "=## Vai trò:\n- Bạn tên là Lyly, chuyên gia phân tích dữ liệu. Khi nhận được câu hỏi cần tra cứu hoặc phân tích dữ liệu bán hàng, bạn PHẢI sử dụng Tool BigQuery để tạo và chạy câu lệnh SQL tìm ra kết quả chính xác trước khi trả lời người dùng.\n\n## Hướng dẫn xử lý:\n1. Nếu câu hỏi của người dùng chưa rõ ràng, hãy yêu cầu họ cung cấp thêm thông tin.\n2. Nếu câu hỏi đã rõ ràng (cần tra cứu dữ liệu), NGAY LẬP TỨC gọi Tool BigQuery để lấy dữ liệu.\n\n## Thông tin Bảng dữ liệu:\n- Table ID: `chocolate-data-510411.chocolate_data.doanh_so_ban_hang_chocolate`\n- Danh sách các cột:\n  + Sales_Person: Tên nhân viên bán hàng\n  + Country: Quốc gia\n  + Product: Tên sản phẩm\n  + Date: Ngày giao dịch (DD-MMM-YYYY)\n  + Amount: Tổng tiền doanh số\n  + Boxes_Shipped: Số hộp vận chuyển"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        64,
+        -48
+      ],
+      "id": "27b29771-3e55-4a09-9049-00d719175397",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId }}",
+        "contextWindowLength": "={{ 10 }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        128,
+        144
+      ],
+      "id": "58409856-661f-4fd8-9688-e64b12900227",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Dùng công cụ này để truy vấn dữ liệu từ BigQuery bảng chocolate. Các cột dữ liệu gồm: Sales_Person (nhân viên), Country (quốc gia), Product (sản phẩm), Date (ngày), Amount (doanh số), Boxes_Shipped (số hộp).",
+        "projectId": {
+          "__rl": true,
+          "value": "chocolate-data-510411",
+          "mode": "list",
+          "cachedResultName": "chocolate data",
+          "cachedResultUrl": "https://console.cloud.google.com/bigquery?project=chocolate-data-510411"
+        },
+        "sqlQuery": "{{ $fromAI(\"sql\", \"Viết câu lệnh BigQuery SQL chuẩn để truy vấn bảng `chocolate-data-510411.chocolate_data.doanh_so_ban_hang_chocolate`. Hãy sử dụng tên các cột phù hợp dựa theo yêu cầu của người dùng.\") }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleBigQueryTool",
+      "typeVersion": 2.1,
+      "position": [
+        304,
+        128
+      ],
+      "id": "c22a208b-4eef-437e-8234-148178e1683f",
+      "name": "Big Query",
+      "credentials": {
+        "googleBigQueryOAuth2Api": {
+          "id": "8LNacCqYvd3PwKxL",
+          "name": "Google BigQuery account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        464,
+        128
+      ],
+      "id": "17d896cf-7260-4739-a1ee-6c68ad2a5a9a",
+      "name": "Calculator"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.5,
+      "position": [
+        -208,
+        -48
+      ],
+      "id": "0f418da6-9daf-43ff-9fb7-a528e95f199d",
+      "name": "When chat message received",
+      "webhookId": "9da84fb1-0c62-4244-9f6e-93b5e67538eb"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "openai/gpt-oss-120b",
+          "mode": "list",
+          "cachedResultName": "openai/gpt-oss-120b"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        -48,
+        144
+      ],
+      "id": "5009e304-1f0f-4d5c-ada3-dadb66db51e5",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "itv3ofLAK4aK7fgR",
+          "name": "OpenAI account 2"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Big Query": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculator": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c610d626-185c-4af8-864c-dee565515e44",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4538f3318c58ffe04ac42900878c189c815efd40189bded65e67293230e91b3a"
+  },
+  "nodeGroups": [],
+  "id": "K8z0b5I0PQCsJumj",
+  "tags": []
+}
